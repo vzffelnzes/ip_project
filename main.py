@@ -8,7 +8,7 @@ from database import init_db, add_word_to_db, get_all_banned_words
 
 logging.basicConfig(level=logging.INFO)
 
-TOKEN="7918677372:AAHwcJrckxibqT70loqS8Q5XP3WRi7QpfZI"
+TOKEN=""
 
 # Инициализация базы данных
 init_db()  # Таблица создаётся здесь перед любым доступом к базе данных

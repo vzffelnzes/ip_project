@@ -2,6 +2,7 @@ import sqlite3
 
 DB_NAME = "banned_words.db"
 
+
 def init_db():
     """Инициализация базы данных."""
     conn = sqlite3.connect(DB_NAME)
@@ -15,6 +16,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+
 def add_word_to_db(word):
     """Добавляет слово в базу данных."""
     conn = sqlite3.connect(DB_NAME)
@@ -27,6 +29,7 @@ def add_word_to_db(word):
     finally:
         conn.close()
 
+
 def get_all_banned_words():
     """Возвращает все запрещённые слова из базы данных."""
     conn = sqlite3.connect(DB_NAME)
@@ -35,3 +38,12 @@ def get_all_banned_words():
     words = [row[0] for row in cursor.fetchall()]
     conn.close()
     return words
+
+
+def delete_word_from_db(word):
+    """Удаляет слово из базы данных."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM banned_words WHERE word = ?", (word,))
+    conn.commit()
+    conn.close()

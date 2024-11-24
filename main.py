@@ -48,6 +48,23 @@ async def toggle_spam_detection(message: Message):
     await send_temporary_message(message.chat.id, f"Режим фильтрации спама {state}.")
 
 
+@router.message(Command("del"))
+async def delete_message_command(message: Message):
+    asyncio.create_task(delete_command_message(message))  # Удалить команду
+    if not message.reply_to_message:
+        await send_temporary_message(
+            message.chat.id,
+            "Эта команда должна быть ответом на сообщение, которое нужно удалить."
+        )
+        return
+
+    try:
+        await bot.delete_message(message.chat.id, message.reply_to_message.message_id)
+        await send_temporary_message(message.chat.id, "Сообщение успешно удалено.")
+    except Exception as e:
+        await send_temporary_message(message.chat.id, f"Не удалось удалить сообщение: {e}")
+
+
 # Команда добавления запрещённых слов
 @router.message(Command("addword"))
 async def add_banned_word(message: Message):
@@ -154,7 +171,7 @@ async def filter_messages(message: Message):
         try:
             count = 0
             analise_words = ["купит", "зайди", "зайти", "купи", "хочешь", "купить", "приобрест", "зайд", "срочно",
-                             "рассылк", "выигрывай", "заходи", "прогнозы", "ставки", "закупк", "реклам"]
+                             "рассылк", "выигрывай", "заходи", "прогнозы", "ставки", "закупк", "реклам", "фриспин"]
             mes = re.sub(r'[^\w\s]', '', mes)
             for i in analise_words:
                 if i in mes:

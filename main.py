@@ -7,6 +7,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from database import init_db, add_word_to_db, get_all_banned_words, delete_word_from_db
 from g4f.client import Client
+from datetime import timedelta, datetime
 
 logging.basicConfig(level=logging.INFO)
 
@@ -31,8 +32,85 @@ async def send_temporary_message(chat_id: int, text: str, delay: int = 5):
     await bot.delete_message(chat_id, sent_message.message_id)
 
 
+@router.message(Command("timeout"))
+async def timeout_user(message: Message):
+    asyncio.create_task(delete_command_message(message))  # Удаляем сообщение команды
+    if not message.reply_to_message:
+        await send_temporary_message(message.chat.id, "Эта команда должна быть ответом на сообщение пользователя.")
+        return
+
+    args = message.text.split()
+    if len(args) < 2:
+        await send_temporary_message(
+            message.chat.id,
+            "Укажите длительность тайм-аута в минутах. Пример: /timeout 10"
+        )
+        return
+
+    try:
+        timeout_duration = int(args[1])
+        until_date = datetime.now() + timedelta(minutes=timeout_duration)
+    except ValueError:
+        await send_temporary_message(
+            message.chat.id,
+            "Укажите корректное число для длительности тайм-аута."
+        )
+        return
+
+    user_to_timeout = message.reply_to_message.from_user.id
+    try:
+        await bot.restrict_chat_member(
+            chat_id=message.chat.id,
+            user_id=user_to_timeout,
+            permissions={"can_send_messages": False},  # Запрет отправки сообщений
+            until_date=until_date
+        )
+        await send_temporary_message(
+            message.chat.id,
+            f"Пользователь {message.reply_to_message.from_user.full_name} отправлен в тайм-аут на {timeout_duration} минут."
+        )
+    except Exception as e:
+        await send_temporary_message(message.chat.id, f"Ошибка при отправке в тайм-аут: {e}")
+
+
+# Команда для снятия тайм-аута
+@router.message(Command("untimeout"))
+async def untimeout_user(message: Message):
+    asyncio.create_task(delete_command_message(message))  # Удаляем сообщение команды
+    if not message.reply_to_message:
+        await send_temporary_message(
+            message.chat.id,
+            "Эта команда должна быть ответом на сообщение пользователя."
+        )
+        return
+
+    user_to_untimeout = message.reply_to_message.from_user.id
+    try:
+        # Снимаем все ограничения с пользователя
+        await bot.restrict_chat_member(
+            chat_id=message.chat.id,
+            user_id=user_to_untimeout,
+            permissions={
+                "can_send_messages": True,
+                "can_send_media_messages": True,
+                "can_send_polls": True,
+                "can_send_other_messages": True,
+                "can_add_web_page_previews": True,
+                "can_change_info": False,
+                "can_invite_users": False,
+                "can_pin_messages": False,
+            }
+        )
+        await send_temporary_message(
+            message.chat.id,
+            f"С пользователя {message.reply_to_message.from_user.full_name} снят тайм-аут."
+        )
+    except Exception as e:
+        await send_temporary_message(message.chat.id, f"Ошибка при снятии тайм-аута: {e}")
+
+
 # Удаление сообщения команды
-async def delete_command_message(message: Message, delay: int = 5):
+async def delete_command_message(message: Message, delay: int = 20):
     """Удаляет сообщение команды через delay секунд."""
     await asyncio.sleep(delay)
     await bot.delete_message(message.chat.id, message.message_id)
@@ -153,25 +231,63 @@ async def unban_user(message: Message):
         await send_temporary_message(message.chat.id, f"Ошибка при разбане пользователя: {e}")
 
 
-# Фильтрация сообщений с запрещёнными словами и спамом
+violations = {}  # Формат: {user_id: count}
+
+# Фильтрация сообщений с запрещёнными словами из базы данных и автоматический бан при 10 нарушениях
 @router.message()
-async def filter_messages(message: Message):
-    global spam_detection_mode
+async def filter_messages_with_ban(message: Message):
+    global violations
+
+    user_id = message.from_user.id
 
     # Проверка на запрещённые слова
-    for word in banned_words:
+    for word in banned_words:  # banned_words загружаются из базы данных
         if word in message.text.lower():
-            await message.delete()
-            await send_temporary_message(message.chat.id, f"Сообщение удалено. Использование слова '{word}' запрещено.")
-            return
+            await message.delete()  # Удаляем сообщение с запрещённым словом
+            # Увеличиваем счётчик нарушений
+            violations[user_id] = violations.get(user_id, 0) + 1
 
-    # Проверка на спам (если включён режим)
+            # Проверяем, достиг ли пользователь лимита нарушений
+            if violations[user_id] >= 10:
+                try:
+                    # Бан пользователя
+                    await bot.ban_chat_member(chat_id=message.chat.id, user_id=user_id)
+                    await send_temporary_message(
+                        message.chat.id,
+                        f"Пользователь {message.from_user.full_name} забанен за 10 нарушений."
+                    )
+                    logging.info(f"Пользователь {message.from_user.full_name} забанен за 10 нарушений.")
+                except Exception as e:
+                    logging.error(f"Ошибка при бане пользователя: {e}")
+                return  # Прекращаем обработку, пользователь уже забанен
+
+            # Отправляем пользователя в тайм-аут
+            timeout_duration = 1  # Тайм-аут в минутах
+            until_date = datetime.now() + timedelta(minutes=timeout_duration)
+            try:
+                await bot.restrict_chat_member(
+                    chat_id=message.chat.id,
+                    user_id=user_id,
+                    permissions={"can_send_messages": False},  # Запрет только на отправку сообщений
+                    until_date=until_date
+                )
+                await send_temporary_message(
+                    message.chat.id,
+                    f"Сообщение удалено. Использование слова '{word}' запрещено. "
+                    f"Пользователь отправлен в тайм-аут на 5 минут. Нарушений: {violations[user_id]}/10."
+                )
+                logging.info(f"Пользователь {message.from_user.full_name} получил тайм-аут. Нарушений: {violations[user_id]}.")
+            except Exception as e:
+                logging.error(f"Ошибка при отправке пользователя в тайм-аут: {e}")
+            return  # Прекращаем дальнейшую обработку этого сообщения
+
+    # Дополнительная проверка на спам, если включён режим фильтрации
     if spam_detection_mode:
         mes = message.text
         try:
             count = 0
             analise_words = ["купит", "зайди", "зайти", "купи", "хочешь", "купить", "приобрест", "зайд", "срочно",
-                             "рассылк", "выигрывай", "заходи", "прогнозы", "ставки", "закупк", "реклам", "фриспин"]
+                             "рассылк", "выигрывай", "заходи", "прогнозы", "ставки", "закупк", "реклам", "фриспин", "бесплатн"]
             mes = re.sub(r'[^\w\s]', '', mes)
             for i in analise_words:
                 if i in mes:

@@ -2,6 +2,7 @@ import logging
 import asyncio
 import re
 
+import aiohttp
 from aiogram import Bot, Dispatcher, Router
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -13,6 +14,9 @@ logging.basicConfig(level=logging.INFO)
 
 TOKEN = "7918677372:AAHwcJrckxibqT70loqS8Q5XP3WRi7QpfZI"
 spam_detection_mode = False  # Флаг для включения режима фильтрации спама
+
+YANDEX_API_KEY = "AQVNwQd4okK1MAXU82jebu7DR3ub5pMeVlRllu5Z"
+YANDEX_API_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 
 # Инициализация базы данных
 init_db()
@@ -283,18 +287,40 @@ async def filter_messages_with_ban(message: Message):
 
     # Дополнительная проверка на спам, если включён режим фильтрации
     if spam_detection_mode:
-        mes = message.text
         try:
-            count = 0
-            analise_words = ["купит", "зайди", "зайти", "купи", "хочешь", "купить", "приобрест", "зайд", "срочно",
-                             "рассылк", "выигрывай", "заходи", "прогнозы", "ставки", "закупк", "реклам", "фриспин", "бесплатн"]
-            mes = re.sub(r'[^\w\s]', '', mes)
-            for i in analise_words:
-                if i in mes:
-                    count += 1
-            if count > 1:
-                await message.delete()
-                await send_temporary_message(message.chat.id, "Сообщение удалено как спам.")
+            async with aiohttp.ClientSession() as session:
+                prompt = {
+                    "modelUri": "gpt://b1gus2jr27on3b7n6gpj/yandexgpt-lite",
+                    "completionOptions": {
+                        "stream": False,
+                        "temperature": 0.6,
+                        "maxTokens": 2000,
+                    },
+                    "messages": [
+                        {
+                            "role": "system",
+                            "text": (
+                                "Несет ли сообщение в кавычках какой либо продающий или рекламный подтекст? "
+                                "Ответь только да или нет. Вот сообщение: "
+                                f"'{message.text}'"
+                            )
+                        }
+                    ]
+                }
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Api-Key {YANDEX_API_KEY}"
+                }
+                async with session.post(YANDEX_API_URL, headers=headers, json=prompt) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        # completion_text = result.get("completions", [{}])[0].get("text", "").lower()
+                        # print(completion_text
+                        if "Да" in result['result']['alternatives'][0]['message']['text']:
+                            await message.delete()
+                            await send_temporary_message(message.chat.id, "Сообщение удалено как спам.")
+                    else:
+                        logging.error(f"Ошибка запроса к Yandex Cloud: {response.status} - {await response.text()}")
         except Exception as e:
             logging.error(f"Ошибка при анализе сообщения: {e}")
 
@@ -311,3 +337,6 @@ if __name__ == '__main__':
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logging.info("Bot stopped manually.")
+
+
+

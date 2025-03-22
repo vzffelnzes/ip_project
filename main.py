@@ -15,8 +15,6 @@ logging.basicConfig(level=logging.INFO)
 TOKEN = "7918677372:AAHwcJrckxibqT70loqS8Q5XP3WRi7QpfZI"
 spam_detection_mode = False  # Флаг для включения режима фильтрации спама
 
-YANDEX_API_KEY = 
-YANDEX_API_URL =
 
 # Инициализация базы данных
 init_db()

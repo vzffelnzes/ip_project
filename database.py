@@ -17,6 +17,24 @@ def init_db():
     conn.close()
 
 
+def clear_database():
+    """Очищает базу данных, удаляя все данные из таблиц."""
+    try:
+        conn = sqlite3.connect("database.db")  # Путь к базе данных
+        cursor = conn.cursor()
+
+        # Удаление данных из таблицы запрещённых слов
+        cursor.execute("DELETE FROM banned_words;")
+        # Добавьте очистку других таблиц, если нужно
+
+        conn.commit()
+        print("База данных успешно очищена.")
+    except Exception as e:
+        print(f"Ошибка при очистке базы данных: {e}")
+    finally:
+        conn.close()
+
+
 def add_word_to_db(word):
     """Добавляет слово в базу данных."""
     conn = sqlite3.connect(DB_NAME)

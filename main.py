@@ -9,6 +9,9 @@ from aiogram.types import Message
 from database import init_db, add_word_to_db, get_all_banned_words, delete_word_from_db
 from g4f.client import Client
 from datetime import timedelta, datetime
+from collections import defaultdict
+from datetime import datetime, timedelta
+from database import clear_database
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,12 +31,43 @@ dp = Dispatcher()
 client = Client()
 
 
+@router.message(Command("cleardb"))
+async def clear_db_command(message: Message):
+    asyncio.create_task(delete_command_message(message))  # Удаляем сообщение команды через 5 секунд
+
+    # Проверяем, является ли пользователь администратором
+    chat_member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+    if chat_member.status not in ["administrator", "creator"]:
+        await send_temporary_message(
+            message.chat.id, "У вас нет прав для выполнения этой команды."
+        )
+        return
+
+    try:
+        # Очищаем базу данных
+        clear_database()
+
+        # Обновляем локальный кэш запрещённых слов
+        global banned_words
+        banned_words = set()
+
+        await send_temporary_message(
+            message.chat.id, "База данных успешно очищена."
+        )
+    except Exception as e:
+        await send_temporary_message(
+            message.chat.id, f"Ошибка при очистке базы данных: {e}"
+        )
+
+
 # Функция отправки временного сообщения
-async def send_temporary_message(chat_id: int, text: str, delay: int = 5):
-    """Отправляет сообщение и удаляет его через delay секунд."""
+async def send_temporary_message(chat_id: int, text: str, delay: int = 3, command_message_id: int = None):
+    """Отправляет сообщение, удаляет его через delay секунд, а также удаляет командное сообщение, если указано."""
     sent_message = await bot.send_message(chat_id, text)
     await asyncio.sleep(delay)
     await bot.delete_message(chat_id, sent_message.message_id)
+    if command_message_id:
+        await bot.delete_message(chat_id, command_message_id)
 
 
 @router.message(Command("timeout"))
@@ -237,6 +271,7 @@ async def unban_user(message: Message):
 
 violations = {}  # Формат: {user_id: count}
 
+
 # Фильтрация сообщений с запрещёнными словами из базы данных и автоматический бан при 10 нарушениях
 @router.message()
 async def filter_messages_with_ban(message: Message):
@@ -280,7 +315,8 @@ async def filter_messages_with_ban(message: Message):
                     f"Сообщение удалено. Использование слова '{word}' запрещено. "
                     f"Пользователь отправлен в тайм-аут на 5 минут. Нарушений: {violations[user_id]}/10."
                 )
-                logging.info(f"Пользователь {message.from_user.full_name} получил тайм-аут. Нарушений: {violations[user_id]}.")
+                logging.info(
+                    f"Пользователь {message.from_user.full_name} получил тайм-аут. Нарушений: {violations[user_id]}.")
             except Exception as e:
                 logging.error(f"Ошибка при отправке пользователя в тайм-аут: {e}")
             return  # Прекращаем дальнейшую обработку этого сообщения
@@ -300,9 +336,8 @@ async def filter_messages_with_ban(message: Message):
                         {
                             "role": "system",
                             "text": (
-                                "Несет ли сообщение в кавычках какой либо продающий или рекламный подтекст? "
-                                "Ответь только да или нет. Вот сообщение: "
-                                f"'{message.text}'"
+
+                                "Ответь 'да' если данное сообщение является рекламой, содержит нецензурную брань или содержит в себе или какую-либо рекламу. Вот сообщение: '{message.text}'"
                             )
                         }
                     ]
@@ -316,7 +351,7 @@ async def filter_messages_with_ban(message: Message):
                         result = await response.json()
                         # completion_text = result.get("completions", [{}])[0].get("text", "").lower()
                         # print(completion_text
-                        if "Да" in result['result']['alternatives'][0]['message']['text']:
+                        if "да" in result['result']['alternatives'][0]['message']['text'].lower():
                             await message.delete()
                             await send_temporary_message(message.chat.id, "Сообщение удалено как спам.")
                     else:
@@ -337,6 +372,3 @@ if __name__ == '__main__':
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logging.info("Bot stopped manually.")
-
-
-

@@ -18,8 +18,6 @@ logging.basicConfig(level=logging.INFO)
 TOKEN = "7918677372:AAHwcJrckxibqT70loqS8Q5XP3WRi7QpfZI"
 spam_detection_mode = False  # Флаг для включения режима фильтрации спама
 
-YANDEX_API_KEY = "AQVNwQd4okK1MAXU82jebu7DR3ub5pMeVlRllu5Z"
-YANDEX_API_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 
 # Инициализация базы данных
 init_db()

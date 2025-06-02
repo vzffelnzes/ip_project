@@ -55,46 +55,54 @@ async def delete_command_message(message: Message, delay: int = 20):
 
 
 async def handle_violation(message: Message, reason: str):
-    """Обрабатывает нарушение и применяет меры"""
+    """Обрабатывает нарушение и применяет меры (1-е нарушение: тайм-аут 24ч, 2-е: бан)"""
     chat_id = message.chat.id
     user_id = message.from_user.id
-    chat_settings[chat_id]['violations'][user_id] += 1
+
+    # Увеличиваем счетчик нарушений
+    violations_count = chat_settings[chat_id]['violations'][user_id] + 1
+    chat_settings[chat_id]['violations'][user_id] = violations_count
 
     try:
         await message.delete()
     except Exception as e:
         logging.error(f"Ошибка удаления сообщения: {e}")
 
-    violations_count = chat_settings[chat_id]['violations'][user_id]
+    # Первое нарушение - тайм-аут на 24 часа
+    if violations_count == 1:
+        timeout_duration = 24 * 60  # 24 часа в минутах
+        until_date = datetime.now() + timedelta(minutes=timeout_duration)
+        try:
+            await bot.restrict_chat_member(
+                chat_id=chat_id,
+                user_id=user_id,
+                permissions={"can_send_messages": False},
+                until_date=until_date
+            )
+            await send_temporary_message(
+                chat_id,
+                f"⚠️ {reason}\n"
+                f"Пользователь получил тайм-аут на 24 часа!\n"
+                f"Следующее нарушение: бан"
+            )
+            logging.info(f"Пользователь {message.from_user.full_name} получил тайм-аут на 24 часа")
+        except Exception as e:
+            logging.error(f"Ошибка тайм-аута: {e}")
 
-    if violations_count >= 10:
+    # Второе нарушение - бан
+    elif violations_count >= 2:
         try:
             await bot.ban_chat_member(chat_id=chat_id, user_id=user_id)
             await send_temporary_message(
                 chat_id,
-                f"🚫 Пользователь {message.from_user.full_name} забанен за 10 нарушений. Причина: {reason}"
+                f"🚫 Пользователь {message.from_user.full_name} забанен!\n"
+                f"Причина: повторное нарушение ({reason})"
             )
-            logging.info(f"Пользователь {message.from_user.full_name} забанен за 10 нарушений")
+            logging.info(f"Пользователь {message.from_user.full_name} забанен за 2 нарушения")
+            # Сбрасываем счетчик нарушений после бана
+            chat_settings[chat_id]['violations'][user_id] = 0
         except Exception as e:
             logging.error(f"Ошибка бана: {e}")
-        return
-
-    timeout_duration = 5
-    until_date = datetime.now() + timedelta(minutes=timeout_duration)
-    try:
-        await bot.restrict_chat_member(
-            chat_id=chat_id,
-            user_id=user_id,
-            permissions={"can_send_messages": False},
-            until_date=until_date
-        )
-        await send_temporary_message(
-            chat_id,
-            f"⚠️ {reason}\n"
-            f"Пользователь в тайм-ауте 5 мин. Нарушений: {violations_count}/10"
-        )
-    except Exception as e:
-        logging.error(f"Ошибка тайм-аута: {e}")
 
 
 # Команды модерации

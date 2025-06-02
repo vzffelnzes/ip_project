@@ -29,7 +29,7 @@ bot = Bot(token=TOKEN)
 router = Router()
 dp = Dispatcher()
 client = Client()
-
+#жопа
 
 @router.message(Command("cleardb"))
 async def clear_db_command(message: Message):

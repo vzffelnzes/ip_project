@@ -336,11 +336,12 @@ async def filter_messages_with_ban(message: Message):
                             "role": "system",
                             "text": (
 
-                                "Ответь 'да' если данное сообщение является рекламой, содержит нецензурную брань или содержит в себе или какую-либо рекламу. Вот сообщение: '{message.text}'"
+                                f"Ответь 'да' если данное сообщение является рекламой, содержит нецензурную брань или содержит в себе или какую-либо рекламу. Вот сообщение: {message.text}"
                             )
                         }
                     ]
                 }
+                print(message.text)
                 headers = {
                     "Content-Type": "application/json",
                     "Authorization": f"Api-Key {YANDEX_API_KEY}"
@@ -350,6 +351,7 @@ async def filter_messages_with_ban(message: Message):
                         result = await response.json()
                         # completion_text = result.get("completions", [{}])[0].get("text", "").lower()
                         # print(completion_text
+                        print(result['result']['alternatives'][0]['message']['text'].lower())
                         if "да" in result['result']['alternatives'][0]['message']['text'].lower():
                             await message.delete()
                             await send_temporary_message(message.chat.id, "Сообщение удалено как спам.")

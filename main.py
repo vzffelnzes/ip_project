@@ -8,6 +8,7 @@ from database import init_db, add_word_to_db, get_all_banned_words, delete_word_
 from datetime import datetime, timedelta
 from collections import defaultdict
 
+
 logging.basicConfig(level=logging.INFO)
 
 TOKEN = "7918677372:AAHwcJrckxibqT70loqS8Q5XP3WRi7QpfZI"
@@ -121,7 +122,7 @@ async def clear_db_command(message: Message):
         await send_temporary_message(message.chat.id, f"❌ Ошибка при очистке базы данных: {e}")
 
 
-@router.message(Command("timeout"))
+"""@router.message(Command("timeout"))
 async def timeout_user(message: Message):
     asyncio.create_task(delete_command_message(message))
     if not await is_admin(message.chat.id, message.from_user.id):
@@ -154,7 +155,7 @@ async def timeout_user(message: Message):
             f"⏳ Пользователь {message.reply_to_message.from_user.full_name} отправлен в тайм-аут на {timeout_duration} мин."
         )
     except Exception as e:
-        await send_temporary_message(message.chat.id, f"❌ Ошибка при тайм-ауте: {e}")
+        await send_temporary_message(message.chat.id, f"❌ Ошибка при тайм-ауте: {e}")"""
 
 
 @router.message(Command("untimeout"))

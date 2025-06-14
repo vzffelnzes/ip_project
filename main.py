@@ -332,7 +332,7 @@ async def filter_messages(message: Message):
     chat_id = message.chat.id
 
     # Проверка текста на запрещенные слова
-    if hasattr(message, 'text') and message.text:
+    """if hasattr(message, 'text') and message.text:
         for word in banned_words:
             if word in message.text.lower():
                 await handle_violation(message, f"Обнаружено запрещенное слово: '{word}'")
@@ -371,7 +371,7 @@ async def filter_messages(message: Message):
                     else:
                         logging.error(f"Ошибка Yandex API: {response.status} - {await response.text()}")
         except Exception as e:
-            logging.error(f"Ошибка анализа спама: {e}")
+            logging.error(f"Ошибка анализа спама: {e}")"""
 
 
 async def main():

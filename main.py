@@ -55,7 +55,7 @@ async def delete_command_message(message: Message, delay: int = 20):
     await bot.delete_message(message.chat.id, message.message_id)
 
 
-"""async def handle_violation(message: Message, reason: str):
+async def handle_violation(message: Message, reason: str):
     """'Обрабатывает нарушение и применяет меры (1-е нарушение: тайм-аут 24ч, 2-е: бан)'"""
     chat_id = message.chat.id
     user_id = message.from_user.id
@@ -103,7 +103,7 @@ async def delete_command_message(message: Message, delay: int = 20):
             # Сбрасываем счетчик нарушений после бана
             chat_settings[chat_id]['violations'][user_id] = 0
         except Exception as e:
-            logging.error(f"Ошибка бана: {e}")"""
+            logging.error(f"Ошибка бана: {e}")
 
 
 # Команды модерации
@@ -122,7 +122,7 @@ async def clear_db_command(message: Message):
         await send_temporary_message(message.chat.id, f"❌ Ошибка при очистке базы данных: {e}")
 
 
-"""@router.message(Command("timeout"))
+@router.message(Command("timeout"))
 async def timeout_user(message: Message):
     asyncio.create_task(delete_command_message(message))
     if not await is_admin(message.chat.id, message.from_user.id):
@@ -155,10 +155,10 @@ async def timeout_user(message: Message):
             f"⏳ Пользователь {message.reply_to_message.from_user.full_name} отправлен в тайм-аут на {timeout_duration} мин."
         )
     except Exception as e:
-        await send_temporary_message(message.chat.id, f"❌ Ошибка при тайм-ауте: {e}")"""
+        await send_temporary_message(message.chat.id, f"❌ Ошибка при тайм-ауте: {e}")
 
 
-"""@router.message(Command("untimeout"))
+@router.message(Command("untimeout"))
 async def untimeout_user(message: Message):
     asyncio.create_task(delete_command_message(message))
     if not await is_admin(message.chat.id, message.from_user.id):
@@ -188,7 +188,7 @@ async def untimeout_user(message: Message):
             f"✅ С пользователя {message.reply_to_message.from_user.full_name} снят тайм-аут"
         )
     except Exception as e:
-        await send_temporary_message(message.chat.id, f"❌ Ошибка при снятии тайм-аута: {e}")"""
+        await send_temporary_message(message.chat.id, f"❌ Ошибка при снятии тайм-аута: {e}")
 
 
 @router.message(Command("togglespam"))
@@ -204,6 +204,7 @@ async def toggle_spam_detection(message: Message):
 
     state = "✅ включен" if chat_settings[chat_id]['spam_detection'] else "❌ выключен"
     await send_temporary_message(chat_id, f"Режим фильтрации спама {state} для этого чата")
+
 
 
 @router.message(Command("spamstatus"))
@@ -332,7 +333,7 @@ async def filter_messages(message: Message):
     chat_id = message.chat.id
 
     # Проверка текста на запрещенные слова
-    """if hasattr(message, 'text') and message.text:
+    if hasattr(message, 'text') and message.text:
         for word in banned_words:
             if word in message.text.lower():
                 await handle_violation(message, f"Обнаружено запрещенное слово: '{word}'")
@@ -371,7 +372,7 @@ async def filter_messages(message: Message):
                     else:
                         logging.error(f"Ошибка Yandex API: {response.status} - {await response.text()}")
         except Exception as e:
-            logging.error(f"Ошибка анализа спама: {e}")"""
+            logging.error(f"Ошибка анализа спама: {e}")
 
 
 async def main():

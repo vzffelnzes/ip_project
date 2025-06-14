@@ -55,8 +55,8 @@ async def delete_command_message(message: Message, delay: int = 20):
     await bot.delete_message(message.chat.id, message.message_id)
 
 
-async def handle_violation(message: Message, reason: str):
-    """Обрабатывает нарушение и применяет меры (1-е нарушение: тайм-аут 24ч, 2-е: бан)"""
+"""async def handle_violation(message: Message, reason: str):
+    """'Обрабатывает нарушение и применяет меры (1-е нарушение: тайм-аут 24ч, 2-е: бан)'"""
     chat_id = message.chat.id
     user_id = message.from_user.id
 
@@ -103,7 +103,7 @@ async def handle_violation(message: Message, reason: str):
             # Сбрасываем счетчик нарушений после бана
             chat_settings[chat_id]['violations'][user_id] = 0
         except Exception as e:
-            logging.error(f"Ошибка бана: {e}")
+            logging.error(f"Ошибка бана: {e}")"""
 
 
 # Команды модерации
@@ -158,7 +158,7 @@ async def timeout_user(message: Message):
         await send_temporary_message(message.chat.id, f"❌ Ошибка при тайм-ауте: {e}")"""
 
 
-@router.message(Command("untimeout"))
+"""@router.message(Command("untimeout"))
 async def untimeout_user(message: Message):
     asyncio.create_task(delete_command_message(message))
     if not await is_admin(message.chat.id, message.from_user.id):
@@ -188,7 +188,7 @@ async def untimeout_user(message: Message):
             f"✅ С пользователя {message.reply_to_message.from_user.full_name} снят тайм-аут"
         )
     except Exception as e:
-        await send_temporary_message(message.chat.id, f"❌ Ошибка при снятии тайм-аута: {e}")
+        await send_temporary_message(message.chat.id, f"❌ Ошибка при снятии тайм-аута: {e}")"""
 
 
 @router.message(Command("togglespam"))

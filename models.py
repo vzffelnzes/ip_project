@@ -22,9 +22,9 @@ class Group(Base):
 	owner_id = Column(BigInteger)
 
 	settings = relationship('ChatSettings', back_populates='chat', uselist=False)
-	bad_words = relationship('BadWords', back_populates='group', cascade='all, delete-orphan')
-	members = relationship('ChatMembers', back_populates='group', cascade='all, deldete-orphan')
-	violation_rules = relationship('ViolationRule', back_populates='group', cascade='all, deldete-orphan')
+	bad_words = relationship('BadWords', back_populates='group')
+	members = relationship('ChatMembers', back_populates='group')
+	violation_rules = relationship('ViolationRule', back_populates='group')
 	subscription = relationship('ChatSubscription', back_populates='group', uselist=False)
 
 

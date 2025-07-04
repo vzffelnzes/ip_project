@@ -10,7 +10,7 @@ from aiogram.types import Message
 from sqlalchemy import func, select
 
 from database import async_session
-from models import Bad_Words, GroupSettings, UserViolation, ViolationRule
+from models import BadWords, GroupSettings, UserViolation, ViolationRule
 
 router = Router()
 
@@ -86,7 +86,7 @@ async def filter_messages(message: Message):
 	# Проверка текста на запрещенные слова
 	if hasattr(message, 'text') and message.text:
 		async with async_session as session:
-			bad_words = session.execute(select(Bad_Words).where(Bad_Words.group_id == chat_id))
+			bad_words = session.execute(select(BadWords).where(BadWords.group_id == chat_id))
 			for word in bad_words.scalars():
 				if word.word in message.text.lower():
 					await handle_violation(message, f"Обнаружено запрещенное слово: '{word}'")

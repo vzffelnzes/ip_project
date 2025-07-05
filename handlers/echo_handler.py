@@ -1,16 +1,26 @@
 import asyncio
 import datetime
 import logging
+import os
 from datetime import datetime, timedelta
 
 from aiogram import Router
 from aiogram.client.session import aiohttp
 from aiogram.methods import RestrictChatMember
 from aiogram.types import Message
+from dotenv import load_dotenv
 from sqlalchemy import func, select
 
 from database import async_session
 from models import BadWords, GroupSettings, UserViolation, ViolationRule
+
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(dotenv_path):
+	load_dotenv(dotenv_path)
+logging.basicConfig(level=logging.INFO)
+
+YANDEX_API_KEY = os.getenv('YANDEX_API_KEY')
+YANDEX_API_URL = os.getenv('YANDEX_API_URL')
 
 router = Router()
 

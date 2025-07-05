@@ -15,6 +15,15 @@ from models import BadWords, GroupSettings, UserViolation, ViolationRule
 router = Router()
 
 
+def is_not_admin(handler):
+	async def wrapper(message: Message):
+		member = await message.bot.get_chat_member(message.chat.id, message.from_user.id)
+		if member.status not in ['administrator', 'creator']:
+			return await handler(message)
+
+	return wrapper
+
+
 async def send_temporary_message(chat, text: str, delay: int = 3):
 	"""Отправляет временное сообщение"""
 	sent_message = await chat.bot.send_message(chat.id, text)
@@ -25,7 +34,7 @@ async def send_temporary_message(chat, text: str, delay: int = 3):
 async def handle_violation(message: Message, reason: str):
 	chat_id = message.chat
 	user_id = message.from_user.id
-	async with async_session as session:
+	async with async_session() as session:
 		async with session.begin():
 			# Получаем или создаём запись о нарушении
 			result = await session.execute(
@@ -80,23 +89,27 @@ async def apply_punishment(message, rule: 'ViolationRule', user_id: int):
 
 
 @router.message()
+@is_not_admin
 async def filter_messages(message: Message):
 	chat_id = message.chat.id
 
 	# Проверка текста на запрещенные слова
 	if hasattr(message, 'text') and message.text:
-		async with async_session as session:
-			bad_words = session.execute(select(BadWords).where(BadWords.group_id == chat_id))
-			for word in bad_words.scalars():
+		async with async_session() as session:
+			stmt = select(BadWords).where(BadWords.group_id == str(chat_id))
+			result = await session.execute(stmt)
+			bad_words = result.scalars().all()
+			for word in bad_words:
 				if word.word in message.text.lower():
 					await handle_violation(message, f"Обнаружено запрещенное слово: '{word}'")
 					return
 
-	async with async_session as session:
-		spam = session.execute(select(GroupSettings).where(GroupSettings.group_id == chat_id))
+	async with async_session() as session:
+		stmt = select(GroupSettings).where(GroupSettings.group_id == str(chat_id))
+		spam = await session.execute(stmt)
 
 	# Проверка на спам (только если включен для этого чата)
-	if spam.scalars().first.is_censorship_enabled and hasattr(message, 'text') and message.text:
+	if spam.scalars().first().is_censorship_enabled and hasattr(message, 'text') and message.text:
 		try:
 			async with aiohttp.ClientSession() as session:
 				prompt = {

@@ -51,7 +51,9 @@ async def init_command(message: Message):
 				)
 
 				expires_at = datetime.utcnow() + timedelta(days=30)
-				chat.subscription = GroupSubscription(expires_at=expires_at, is_premium=False)
+				chat.subscription = GroupSubscription(expires_at=expires_at, is_premium=True)
+
+				session.add(chat)
 
 				await session.flush()
 				await send_temporary_message(message.chat, 'Группа успешно добавлена!')

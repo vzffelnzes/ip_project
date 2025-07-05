@@ -49,10 +49,7 @@ async def subscription_handler(call: CallbackQuery):
 		async with session.begin():
 			chats = await session.execute(select(Group).where(Group.owner_id == call.from_user.id))
 			if chats:
-				chat_id = call.message.chat.id
-
-				# Заглушка: проверяем, включена ли подписка (можно заменить на проверку в БД)
-				is_active = chat_settings[chat_id].get('spam_detection', False)
+				is_active = chats.scalar().first().subscription.is_premium
 
 				status_text = '✅ Активна' if is_active else '❌ Не активна'
 				response_text = (
@@ -102,8 +99,11 @@ async def add_chat(call: CallbackQuery):
 	async with async_session() as session:
 		async with session.begin():
 			groups = await session.execute(select(Group).where(Group.owner_id == call.from_user.id))
-			if groups:
-				text = '\n'.join(f'{await call.bot.get_chat(g.group_id).title} - {g.pay_date}' for g in groups)
+			if groups.scalars().all():
+				text = '\n'.join(
+					f'{await call.bot.get_chat(int(g.group_id)).title} - {g.subscription.expires_at}'
+					for g in groups.scalars()
+				)
 				await call.message.edit_text('Ваши группы:\n', f'{text}', reply_markup=buttons, parse_mode='Markdown')
 			else:
 				await call.message.edit_text(

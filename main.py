@@ -1,16 +1,23 @@
 import asyncio
 import logging
+import os
 from datetime import datetime
 
 from aiogram import Bot, Dispatcher, Router
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from dotenv import load_dotenv
 from sqlalchemy import select
 
 from database import Base, async_session, engine
 from handlers import admin_handlers, callback_handlers, echo_handler, user_commands
-from models import Group
+from models import Group, GroupSubscription
 
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(dotenv_path):
+	load_dotenv(dotenv_path)
 logging.basicConfig(level=logging.INFO)
+
+TOKEN = os.getenv('TOKEN')
 
 # Инициализируем планировщик
 scheduler = AsyncIOScheduler(timezone='UTC')
@@ -32,7 +39,10 @@ async def check_expired_subscriptions():
 	async with async_session() as session:
 		async with session.begin():
 			expired_subs = await session.execute(
-				select(Group).where(Group.subscription.expires_at <= now, Group.subscription.is_premium == True)
+				select(Group).where(
+					Group.subscription.has(GroupSubscription.expires_at <= now),
+					Group.subscription.has(GroupSubscription.is_premium == True),
+				)
 			)
 			for chat in expired_subs.scalars():
 				try:
@@ -60,10 +70,10 @@ async def main():
 	await init_db()
 	await start_scheduler()
 	dp.include_router(router)
-	dp.include_router(echo_handler.router)
 	dp.include_router(user_commands.router)
 	dp.include_router(admin_handlers.router)
 	dp.include_router(callback_handlers.router)
+	dp.include_router(echo_handler.router)
 	await bot.delete_webhook(drop_pending_updates=True)
 	await dp.start_polling(bot)
 

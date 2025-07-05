@@ -2,8 +2,8 @@ import asyncio
 import logging
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import declarative_base
 
 # === Настройки ===
 DATABASE_URL_ASYNC = 'postgresql+asyncpg://postgres:password@localhost/mydatabase'
@@ -18,7 +18,7 @@ Base = declarative_base()
 
 # === Асинхронный движок и сессия ===
 engine = create_async_engine(DATABASE_URL_ASYNC, echo=True)
-async_session = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+async_session = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
 # === Функция для создания БД и таблиц ===

@@ -12,18 +12,14 @@ from database import Base, async_session, engine
 from handlers import admin_handlers, callback_handlers, echo_handler, user_commands
 from models import Group, GroupSubscription
 
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-if os.path.exists(dotenv_path):
-	load_dotenv(dotenv_path)
+load_dotenv()
 logging.basicConfig(level=logging.INFO)
-
-TOKEN = os.getenv('TOKEN')
 
 # Инициализируем планировщик
 scheduler = AsyncIOScheduler(timezone='UTC')
 
 # Yandex API ключи
-
+TOKEN = os.getenv('TOKEN')
 
 bot = Bot(token=TOKEN)
 router = Router()

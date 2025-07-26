@@ -1,17 +1,30 @@
-# Используем официальный образ Python
+# Этап 1: Сборка uv
+FROM python:3.12-slim as builder
+
+# Установка uv
+RUN pip install --no-cache-dir uv
+
+# Копируем pyproject.toml и устанавливаем зависимости
+WORKDIR /app
+COPY pyproject.toml ./
+
+# Устанавливаем зависимости в режиме production (без dev)
+RUN uv pip install --system --no-dev -r pyproject.toml
+
+
+# Этап 2: Финальный образ
 FROM python:3.12-slim
 
-# Указываем рабочую директорию
+# Устанавливаем зависимости через pip (чтобы не тащить uv в продакшн)
+# Но мы скопируем установленные пакеты из builder
+
 WORKDIR /app
 
-# Копируем зависимости
-COPY requirements.txt .
+# Копируем установленные пакеты из builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 
-# Устанавливаем зависимости
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Копируем исходный код бота
+# Копируем исходный код
 COPY . .
 
-# Команда по умолчанию для запуска бота
+# Запуск бота
 CMD ["python", "main.py"]
